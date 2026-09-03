@@ -10,7 +10,11 @@ from services.database import DownloadRepository
 
 def is_allowed(update: Update, settings: Settings) -> bool:
     user = update.effective_user
-    return user is not None
+    if user is None:
+        return False
+    if settings.telegram_user_id is None:
+        return True
+    return user.id == settings.telegram_user_id
 
 
 def is_private_chat(update: Update) -> bool:

@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 
 from services.database import DownloadRepository
 from services.queue import DownloadJob, DownloadQueue
+from services.rate_limit import consume, limit_message
 from services.track_cache import TrackCache
 
 
@@ -83,6 +84,15 @@ async def _enqueue_track_download(
     duration = str(track.get("duration", ""))
     cover_url = _cover_url(track)
     has_media = force_has_media or bool(message and (message.photo or message.video or message.animation or message.document))
+
+    if not consume(context.application.bot_data, user.id):
+        logger.warning("Rate limit hit user_id=%s", user.id)
+        text = limit_message(context.application.bot_data)
+        if has_media:
+            await query.edit_message_caption(caption=text)
+        else:
+            await query.edit_message_text(text)
+        return
 
     await _send_preview_if_available(context, chat.id if chat is not None else None, track, title, artist, cover_url)
 
