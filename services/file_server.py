@@ -7,7 +7,7 @@ from pathlib import Path
 from aiohttp import web
 
 from services.database import DownloadRepository, decode_dt, utc_now
-from services.storage import S3Storage
+from services.storage import S3Storage, _content_disposition
 
 
 logger = logging.getLogger(__name__)
@@ -92,7 +92,7 @@ class FileServer:
         return web.FileResponse(
             file_path,
             headers={
-                "Content-Disposition": f'attachment; filename="{file_path.name}"',
+                "Content-Disposition": _content_disposition(_download_filename(row, raw_file_path)),
                 "Cache-Control": "no-store",
             },
         )

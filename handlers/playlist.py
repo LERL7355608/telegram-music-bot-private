@@ -20,6 +20,7 @@ from config import Settings
 from providers.base import DownloadProvider
 from services.database import DownloadRepository
 from services.lyrics import LrcLibLyricsProvider
+from services.rate_limit import consume, limit_message
 from services.storage import LocalStorage, S3Storage, StoredFile
 from services.track_cache import TrackCache
 
@@ -180,6 +181,16 @@ async def enqueue_playlist_zip(update: Update, context: ContextTypes.DEFAULT_TYP
     playlist = _playlist_from_cache(context, ref)
     if playlist is None:
         await query.edit_message_text("Esa playlist expiro. Vuelve a pegar el link.")
+        return
+
+    if not consume(context.application.bot_data, user.id):
+        logger.warning("Rate limit hit on playlist zip user_id=%s", user.id)
+        await _edit_playlist_message(
+            update,
+            context,
+            limit_message(context.application.bot_data),
+            InlineKeyboardMarkup([[InlineKeyboardButton("🔎 Nueva busqueda", callback_data="home")]]),
+        )
         return
 
     app_data = context.application.bot_data
